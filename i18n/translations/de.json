@@ -1,0 +1,112 @@
+[
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE",
+    "source": "Surface",
+    "message": "Oberfläche"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_STYLE",
+    "source": "Surface material",
+    "message": "Oberflächenmaterial"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_SOLID",
+    "source": "Solid",
+    "message": "Deckend"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT",
+    "source": "Transparent",
+    "message": "Transparent"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS",
+    "source": "Liquid Glass",
+    "message": "Liquid Glass"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_BLUR",
+    "source": "Blur",
+    "message": "Blur"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS",
+    "source": "Frosted Glass",
+    "message": "Frosted Glass"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_SOLID_DESCRIPTION",
+    "source": "The browser surface is filled with the theme color.",
+    "message": "Die Browseroberfläche wird mit der Designfarbe gefüllt."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT_DESCRIPTION",
+    "source": "The desktop shows through the browser surface without any blur.",
+    "message": "Der Schreibtisch scheint ohne Unschärfe durch die Browseroberfläche."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS_DESCRIPTION",
+    "source": "The system Liquid Glass material that bends and reflects what is behind the window. Earlier versions of macOS use a similar glass effect.",
+    "message": "Das Liquid-Glass-Material des Systems, das bricht und spiegelt, was hinter dem Fenster liegt. Ältere macOS-Versionen verwenden einen ähnlichen Glaseffekt."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_BLUR_DESCRIPTION",
+    "source": "The desktop shows through the browser surface with an adjustable blur.",
+    "message": "Der Schreibtisch scheint mit einstellbarer Unschärfe durch die Browseroberfläche."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS_DESCRIPTION",
+    "source": "A milky, softly grained glass that diffuses what is behind the window.",
+    "message": "Ein milchiges, fein gekörntes Glas, das alles hinter dem Fenster weich streut."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_OPACITY",
+    "source": "Opacity",
+    "message": "Deckkraft"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_TINT",
+    "source": "Theme color tint",
+    "message": "Tönung mit Designfarbe"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_HIGHLIGHT",
+    "source": "Highlight",
+    "message": "Glanz"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_VARIANT",
+    "source": "Glass variant",
+    "message": "Glasvariante"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_VARIANT_REGULAR",
+    "source": "Regular",
+    "message": "Normal"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_VARIANT_CLEAR",
+    "source": "Clear",
+    "message": "Klar"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_BLUR_RADIUS",
+    "source": "Blur strength",
+    "message": "Stärke der Unschärfe"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_FROST",
+    "source": "Frost",
+    "message": "Milchigkeit"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_GRAIN",
+    "source": "Grain",
+    "message": "Körnung"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_RESET",
+    "source": "Options of this material",
+    "message": "Optionen dieses Materials"
+  }
+]

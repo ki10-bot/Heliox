@@ -1,0 +1,140 @@
+name: Build architecture
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      helium:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  resources:
+    name: Prepare sources
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: imputnet/helium-macos
+          ref: ${{ inputs.helium }}
+          submodules: true
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: heliox
+          persist-credentials: false
+      - name: Add Heliox
+        run: python3 heliox/scripts/overlay.py .
+      - uses: ./.github/actions/prepare-environment
+      - name: Download and patch sources
+        run: |
+          set -o pipefail
+          source ./devutils/shared.sh
+          prepare_sources | tee -a github_actions_retrieve_resources.log
+          rm -rf build/download_cache
+      - name: Archive sources
+        run: ./github_pack_resources.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: heliox_resources_${{ inputs.arch }}
+          path: upload_build_resources/
+          retention-days: 3
+
+  phase_01:
+    name: Build phase 1
+    needs: resources
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: false
+
+  phase_02:
+    name: Build phase 2
+    needs: phase_01
+    if: ${{ needs.phase_01.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+
+  phase_03:
+    name: Build phase 3
+    needs: phase_02
+    if: ${{ needs.phase_02.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+
+  phase_04:
+    name: Build phase 4
+    needs: phase_03
+    if: ${{ needs.phase_03.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+
+  phase_05:
+    name: Build phase 5
+    needs: phase_04
+    if: ${{ needs.phase_04.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+
+  phase_06:
+    name: Build phase 6
+    needs: phase_05
+    if: ${{ needs.phase_05.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+
+  phase_07:
+    name: Build phase 7
+    needs: phase_06
+    if: ${{ needs.phase_06.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+
+  phase_08:
+    name: Build phase 8
+    needs: phase_07
+    if: ${{ needs.phase_07.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true

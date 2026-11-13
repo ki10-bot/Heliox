@@ -1,0 +1,692 @@
+--- a/chrome/browser/ui/ui_features.cc
++++ b/chrome/browser/ui/ui_features.cc
+@@ -26,7 +26,7 @@ BASE_FEATURE(kBookmarkOpenAllConfirmation, base::FEATURE_ENABLED_BY_DEFAULT);
+ // TODO: Re-enable once Helium's browser commands are migrated to actions.
+ BASE_FEATURE(kUseActionsForBrowserCommands, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+-BASE_FEATURE(kHeliumNativeFrameMaterials, base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kHeliumNativeFrameMaterials, base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kHeliumHidePageActions, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+--- a/chrome/browser/ui/views/frame/browser_native_widget_mac.h
++++ b/chrome/browser/ui/views/frame/browser_native_widget_mac.h
+@@ -99,6 +99,7 @@ class BrowserNativeWidgetMac : public views::NativeWidgetMac,
+   void UpdateGlassEligibility(bool is_glass_eligible);
+   void UpdateBackgroundColor();
+   void OnNativeFrameMaterialsPrefChanged();
++  void OnHelioxSurfaceOptionsChanged();
+ 
+   raw_ptr<BrowserView> browser_view_;  // Weak. Our ClientView.
+   BrowserWindowTouchBarViewsDelegate* __strong touch_bar_delegate_;
+--- a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
++++ b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
+@@ -45,6 +45,8 @@
+ #include "chrome/browser/ui/web_applications/app_browser_controller.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/color/chrome_color_id.h"
++#include "chrome/browser/ui/views/helium/heliox_surface.h"
++#include "chrome/browser/ui/views/helium/heliox_surface_view_mac.h"
+ #include "chrome/browser/ui/views/helium/native_frame_materials.h"
+ #include "chrome/browser/ui/views/helium/native_frame_materials_mac.h"
+ #include "chrome/common/pref_names.h"
+@@ -188,10 +190,17 @@ BrowserNativeWidgetMac::BrowserNativeWidgetMac(BrowserWidget* browser_widget,
+   CHECK(browser_view);
+   pref_change_registrar_.Init(browser_view_->GetProfile()->GetPrefs());
+   pref_change_registrar_.Add(
+-      prefs::kHeliumNativeFrameMaterials,
++      heliox::GetSurfaceStylePrefName(),
+       base::BindRepeating(
+           &BrowserNativeWidgetMac::OnNativeFrameMaterialsPrefChanged,
+           base::Unretained(this)));
++  for (const char* option : heliox::GetSurfaceOptionPrefNames()) {
++    pref_change_registrar_.Add(
++        option,
++        base::BindRepeating(
++            &BrowserNativeWidgetMac::OnHelioxSurfaceOptionsChanged,
++            base::Unretained(this)));
++  }
+   if (GetRemoteCocoaApplicationHost()) {
+     // Only add observer on PWA.
+     chrome::AddCommandObserver(browser_view_->browser(), IDC_BACK, this);
+@@ -834,8 +843,7 @@ void BrowserNativeWidgetMac::UpdateGlassEligibility(bool is_glass_eligible) {
+   }
+ 
+   if (!background_view_) {
+-    background_view_ =
+-        helium::CreateNativeFrameMaterialBackgroundView(content_view.bounds);
++    background_view_ = heliox::CreateSurfaceView(content_view.bounds);
+     [content_view addSubview:background_view_
+                   positioned:NSWindowBelow
+                   relativeTo:nil];
+@@ -860,11 +868,21 @@ void BrowserNativeWidgetMac::UpdateBackgroundColor() {
+ 
+   last_color_mode_ = color_mode;
+   last_theme_color_ = theme_color;
+-  helium::UpdateNativeFrameMaterialBackgroundView(background_view_, color_mode,
+-                                                  theme_color);
++  heliox::UpdateSurfaceView(
++      background_view_,
++      heliox::GetSurfaceConfig(browser_view_->GetProfile()->GetPrefs()),
++      color_mode == ui::ColorProviderKey::ColorMode::kDark, theme_color);
++}
++
++void BrowserNativeWidgetMac::OnHelioxSurfaceOptionsChanged() {
++  last_color_mode_.reset();
++  last_theme_color_.reset();
++  UpdateBackgroundColor();
+ }
+ 
+ void BrowserNativeWidgetMac::OnNativeFrameMaterialsPrefChanged() {
++  last_color_mode_.reset();
++  last_theme_color_.reset();
+   UpdateBackground();
+   if (browser_view_ && browser_view_->GetWidget()) {
+     browser_view_->GetWidget()->ThemeChanged();
+--- a/chrome/browser/ui/views/helium/BUILD.gn
++++ b/chrome/browser/ui/views/helium/BUILD.gn
+@@ -35,6 +35,8 @@ if (is_mac) {
+ 
+ source_set("native_frame_materials") {
+   sources = [
++    "heliox_surface.cc",
++    "heliox_surface.h",
+     "native_frame_materials.cc",
+     "native_frame_materials.h",
+   ]
+@@ -51,13 +53,21 @@ source_set("native_frame_materials") {
+ 
+   if (is_mac) {
+     sources += [
++      "heliox_surface_view_mac.h",
++      "heliox_surface_view_mac.mm",
+       "native_frame_materials_mac.h",
+       "native_frame_materials_mac.mm",
+     ]
+ 
+     deps += [
++      "//base",
+       "//skia",
+       "//ui/color",
+     ]
++
++    frameworks = [
++      "AppKit.framework",
++      "QuartzCore.framework",
++    ]
+   }
+ }
+--- /dev/null
++++ b/chrome/browser/ui/views/helium/heliox_surface.cc
+@@ -0,0 +1,74 @@
++#include "chrome/browser/ui/views/helium/heliox_surface.h"
++
++#include <algorithm>
++
++#include "chrome/common/pref_names.h"
++#include "components/prefs/pref_service.h"
++
++namespace heliox {
++namespace {
++
++int GetPercent(const PrefService* prefs, const char* name) {
++  return std::clamp(prefs->GetInteger(name), 0, 100);
++}
++
++}
++
++const char* GetSurfaceStylePrefName() {
++  return prefs::kHelioxSurfaceStyle;
++}
++
++std::array<const char*, kSurfaceOptionPrefCount> GetSurfaceOptionPrefNames() {
++  return {
++      prefs::kHelioxTransparentOpacity,   prefs::kHelioxLiquidGlassVariant,
++      prefs::kHelioxLiquidGlassTint,      prefs::kHelioxLiquidGlassHighlight,
++      prefs::kHelioxBlurRadius,           prefs::kHelioxBlurTint,
++      prefs::kHelioxFrostedGlassFrost,    prefs::kHelioxFrostedGlassTint,
++      prefs::kHelioxFrostedGlassGrain,
++  };
++}
++
++SurfaceStyle GetSurfaceStyle(const PrefService* prefs) {
++  if (!prefs) {
++    return SurfaceStyle::kSolid;
++  }
++
++  switch (prefs->GetInteger(prefs::kHelioxSurfaceStyle)) {
++    case 1:
++      return SurfaceStyle::kTransparent;
++    case 2:
++      return SurfaceStyle::kLiquidGlass;
++    case 3:
++      return SurfaceStyle::kBlur;
++    case 4:
++      return SurfaceStyle::kFrostedGlass;
++    default:
++      return SurfaceStyle::kSolid;
++  }
++}
++
++SurfaceConfig GetSurfaceConfig(const PrefService* prefs) {
++  SurfaceConfig config;
++  if (!prefs) {
++    return config;
++  }
++
++  config.style = GetSurfaceStyle(prefs);
++  config.transparent_opacity =
++      GetPercent(prefs, prefs::kHelioxTransparentOpacity);
++  config.glass_variant =
++      prefs->GetInteger(prefs::kHelioxLiquidGlassVariant) == 1
++          ? GlassVariant::kClear
++          : GlassVariant::kRegular;
++  config.glass_tint = GetPercent(prefs, prefs::kHelioxLiquidGlassTint);
++  config.glass_highlight =
++      GetPercent(prefs, prefs::kHelioxLiquidGlassHighlight);
++  config.blur_radius = GetPercent(prefs, prefs::kHelioxBlurRadius);
++  config.blur_tint = GetPercent(prefs, prefs::kHelioxBlurTint);
++  config.frost = GetPercent(prefs, prefs::kHelioxFrostedGlassFrost);
++  config.frost_tint = GetPercent(prefs, prefs::kHelioxFrostedGlassTint);
++  config.frost_grain = GetPercent(prefs, prefs::kHelioxFrostedGlassGrain);
++  return config;
++}
++
++}
+--- /dev/null
++++ b/chrome/browser/ui/views/helium/heliox_surface.h
+@@ -0,0 +1,48 @@
++#ifndef CHROME_BROWSER_UI_VIEWS_HELIUM_HELIOX_SURFACE_H_
++#define CHROME_BROWSER_UI_VIEWS_HELIUM_HELIOX_SURFACE_H_
++
++#include <array>
++
++class PrefService;
++
++namespace heliox {
++
++enum class SurfaceStyle {
++  kSolid = 0,
++  kTransparent = 1,
++  kLiquidGlass = 2,
++  kBlur = 3,
++  kFrostedGlass = 4,
++};
++
++enum class GlassVariant {
++  kRegular = 0,
++  kClear = 1,
++};
++
++struct SurfaceConfig {
++  SurfaceStyle style = SurfaceStyle::kSolid;
++  int transparent_opacity = 0;
++  GlassVariant glass_variant = GlassVariant::kRegular;
++  int glass_tint = 0;
++  int glass_highlight = 0;
++  int blur_radius = 0;
++  int blur_tint = 0;
++  int frost = 0;
++  int frost_tint = 0;
++  int frost_grain = 0;
++
++  friend bool operator==(const SurfaceConfig&, const SurfaceConfig&) = default;
++};
++
++inline constexpr int kSurfaceOptionPrefCount = 9;
++
++const char* GetSurfaceStylePrefName();
++std::array<const char*, kSurfaceOptionPrefCount> GetSurfaceOptionPrefNames();
++
++SurfaceStyle GetSurfaceStyle(const PrefService* prefs);
++SurfaceConfig GetSurfaceConfig(const PrefService* prefs);
++
++}
++
++#endif
+--- /dev/null
++++ b/chrome/browser/ui/views/helium/heliox_surface_view_mac.h
+@@ -0,0 +1,20 @@
++#ifndef CHROME_BROWSER_UI_VIEWS_HELIUM_HELIOX_SURFACE_VIEW_MAC_H_
++#define CHROME_BROWSER_UI_VIEWS_HELIUM_HELIOX_SURFACE_VIEW_MAC_H_
++
++#import <Cocoa/Cocoa.h>
++
++#include "chrome/browser/ui/views/helium/heliox_surface.h"
++#include "third_party/skia/include/core/SkColor.h"
++
++namespace heliox {
++
++NSView* CreateSurfaceView(NSRect frame);
++
++void UpdateSurfaceView(NSView* surface_view,
++                       const SurfaceConfig& config,
++                       bool is_dark,
++                       SkColor theme_color);
++
++}
++
++#endif
+--- /dev/null
++++ b/chrome/browser/ui/views/helium/heliox_surface_view_mac.mm
+@@ -0,0 +1,399 @@
++#import "chrome/browser/ui/views/helium/heliox_surface_view_mac.h"
++
++#import <QuartzCore/QuartzCore.h>
++#include <dlfcn.h>
++#include <stdint.h>
++
++#include <algorithm>
++
++#include "base/apple/foundation_util.h"
++#include "base/compiler_specific.h"
++#include "base/containers/span.h"
++
++namespace {
++
++using HelioxConnectionFunction = int (*)();
++using HelioxBlurFunction = int32_t (*)(int, int32_t, int64_t);
++
++constexpr CGFloat kHelioxMaxBlurRadius = 64.0;
++constexpr CGFloat kHelioxSheenHeight = 168.0;
++constexpr CGFloat kHelioxRimHeight = 1.0;
++constexpr int kHelioxGrainSize = 128;
++
++enum class HelioxMaterial {
++  kNone,
++  kVibrancy,
++  kGlass,
++};
++
++HelioxConnectionFunction HelioxConnection() {
++  static HelioxConnectionFunction function = []() {
++    void* symbol = dlsym(RTLD_DEFAULT, "CGSDefaultConnectionForThread");
++    if (!symbol) {
++      symbol = dlsym(RTLD_DEFAULT, "CGSMainConnectionID");
++    }
++    return reinterpret_cast<HelioxConnectionFunction>(symbol);
++  }();
++  return function;
++}
++
++HelioxBlurFunction HelioxBlur() {
++  static HelioxBlurFunction function = reinterpret_cast<HelioxBlurFunction>(
++      dlsym(RTLD_DEFAULT, "CGSSetWindowBackgroundBlurRadius"));
++  return function;
++}
++
++bool HelioxWindowBlurAvailable() {
++  return HelioxConnection() && HelioxBlur();
++}
++
++void HelioxSetWindowBlur(NSWindow* window, CGFloat radius) {
++  if (!window || window.windowNumber <= 0 || !HelioxWindowBlurAvailable()) {
++    return;
++  }
++  HelioxBlur()(HelioxConnection()(),
++               static_cast<int32_t>(window.windowNumber),
++               static_cast<int64_t>(radius));
++}
++
++Class HelioxGlassClass() {
++  return NSClassFromString(@"NSGlassEffectView");
++}
++
++CGFloat HelioxFraction(int percent) {
++  return std::clamp(percent, 0, 100) / 100.0;
++}
++
++NSColor* HelioxColor(SkColor color, CGFloat alpha) {
++  return [NSColor colorWithSRGBRed:SkColorGetR(color) / 255.0
++                             green:SkColorGetG(color) / 255.0
++                              blue:SkColorGetB(color) / 255.0
++                             alpha:alpha];
++}
++
++NSImage* HelioxGrainImage() {
++  static NSImage* image = []() {
++    NSBitmapImageRep* rep = [[NSBitmapImageRep alloc]
++        initWithBitmapDataPlanes:nullptr
++                      pixelsWide:kHelioxGrainSize
++                      pixelsHigh:kHelioxGrainSize
++                   bitsPerSample:8
++                 samplesPerPixel:2
++                        hasAlpha:YES
++                        isPlanar:NO
++                  colorSpaceName:NSCalibratedWhiteColorSpace
++                     bytesPerRow:kHelioxGrainSize * 2
++                    bitsPerPixel:16];
++    auto pixels = UNSAFE_BUFFERS(base::span<unsigned char>(
++        rep.bitmapData,
++        static_cast<size_t>(kHelioxGrainSize * kHelioxGrainSize * 2)));
++    uint32_t state = 0x9E3779B9u;
++    for (size_t index = 0; index < pixels.size(); index += 2) {
++      state = state * 1664525u + 1013904223u;
++      pixels[index] = static_cast<unsigned char>(state >> 24);
++      pixels[index + 1] = 255;
++    }
++    NSImage* result = [[NSImage alloc]
++        initWithSize:NSMakeSize(kHelioxGrainSize, kHelioxGrainSize)];
++    [result addRepresentation:rep];
++    return result;
++  }();
++  return image;
++}
++
++NSView* HelioxLayerView(NSRect frame, NSAutoresizingMaskOptions mask) {
++  NSView* view = [[NSView alloc] initWithFrame:frame];
++  view.autoresizingMask = mask;
++  view.wantsLayer = YES;
++  view.hidden = YES;
++  return view;
++}
++
++}
++
++@interface HelioxSheenView : NSView
++- (void)setStrength:(CGFloat)strength dark:(BOOL)dark;
++@end
++
++@implementation HelioxSheenView
++
++- (instancetype)initWithFrame:(NSRect)frame {
++  if ((self = [super initWithFrame:frame])) {
++    self.wantsLayer = YES;
++    self.hidden = YES;
++  }
++  return self;
++}
++
++- (CALayer*)makeBackingLayer {
++  CAGradientLayer* gradient = [CAGradientLayer layer];
++  gradient.startPoint = CGPointMake(0.5, 1.0);
++  gradient.endPoint = CGPointMake(0.5, 0.0);
++  gradient.locations = @[ @0.0, @0.22, @1.0 ];
++  return gradient;
++}
++
++- (void)setStrength:(CGFloat)strength dark:(BOOL)dark {
++  CAGradientLayer* gradient =
++      base::apple::ObjCCast<CAGradientLayer>(self.layer);
++  if (!gradient) {
++    return;
++  }
++  const CGFloat peak = strength * (dark ? 0.22 : 0.42);
++  NSColor* start = [NSColor colorWithSRGBRed:1.0 green:1.0 blue:1.0 alpha:peak];
++  NSColor* middle = [NSColor colorWithSRGBRed:1.0
++                                        green:1.0
++                                         blue:1.0
++                                        alpha:peak * 0.35];
++  NSColor* end = [NSColor colorWithSRGBRed:1.0 green:1.0 blue:1.0 alpha:0.0];
++  gradient.colors = @[
++    (__bridge id)start.CGColor,
++    (__bridge id)middle.CGColor,
++    (__bridge id)end.CGColor,
++  ];
++}
++
++@end
++
++@interface HelioxSurfaceView : NSView
++- (void)applyConfig:(const heliox::SurfaceConfig&)config
++               dark:(BOOL)dark
++         themeColor:(SkColor)themeColor;
++@end
++
++@implementation HelioxSurfaceView {
++  NSView* __strong _materialView;
++  NSView* __strong _frostView;
++  NSView* __strong _tintView;
++  NSView* __strong _grainView;
++  HelioxSheenView* __strong _sheenView;
++  NSView* __strong _rimView;
++  HelioxMaterial _material;
++  CGFloat _blurRadius;
++}
++
++- (instancetype)initWithFrame:(NSRect)frame {
++  if ((self = [super initWithFrame:frame])) {
++    self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
++    self.wantsLayer = YES;
++    _material = HelioxMaterial::kNone;
++    _blurRadius = 0.0;
++
++    const NSRect bounds = self.bounds;
++    const NSAutoresizingMaskOptions fill =
++        NSViewWidthSizable | NSViewHeightSizable;
++    const NSAutoresizingMaskOptions top = NSViewWidthSizable | NSViewMinYMargin;
++
++    _frostView = HelioxLayerView(bounds, fill);
++    _tintView = HelioxLayerView(bounds, fill);
++    _grainView = HelioxLayerView(bounds, fill);
++    _grainView.layer.backgroundColor =
++        [NSColor colorWithPatternImage:HelioxGrainImage()].CGColor;
++
++    _sheenView = [[HelioxSheenView alloc]
++        initWithFrame:NSMakeRect(0.0, NSMaxY(bounds) - kHelioxSheenHeight,
++                                 NSWidth(bounds), kHelioxSheenHeight)];
++    _sheenView.autoresizingMask = top;
++
++    _rimView = HelioxLayerView(
++        NSMakeRect(0.0, NSMaxY(bounds) - kHelioxRimHeight, NSWidth(bounds),
++                   kHelioxRimHeight),
++        top);
++
++    [self addSubview:_frostView];
++    [self addSubview:_tintView];
++    [self addSubview:_grainView];
++    [self addSubview:_sheenView];
++    [self addSubview:_rimView];
++  }
++  return self;
++}
++
++- (NSView*)hitTest:(NSPoint)point {
++  return nil;
++}
++
++- (void)viewWillMoveToWindow:(NSWindow*)newWindow {
++  [super viewWillMoveToWindow:newWindow];
++  if (self.window && self.window != newWindow) {
++    HelioxSetWindowBlur(self.window, 0.0);
++  }
++}
++
++- (void)viewDidMoveToWindow {
++  [super viewDidMoveToWindow];
++  HelioxSetWindowBlur(self.window, _blurRadius);
++}
++
++- (void)setMaterial:(HelioxMaterial)material {
++  if (_material == material) {
++    return;
++  }
++
++  [_materialView removeFromSuperview];
++  _materialView = nil;
++  _material = material;
++
++  if (material == HelioxMaterial::kNone) {
++    return;
++  }
++
++  NSView* view = nil;
++  if (material == HelioxMaterial::kGlass) {
++    view = [static_cast<NSView*>([HelioxGlassClass() alloc])
++        initWithFrame:self.bounds];
++  } else {
++    NSVisualEffectView* effect =
++        [[NSVisualEffectView alloc] initWithFrame:self.bounds];
++    effect.blendingMode = NSVisualEffectBlendingModeBehindWindow;
++    effect.state = NSVisualEffectStateActive;
++    view = effect;
++  }
++
++  view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
++  _materialView = view;
++  [self addSubview:view positioned:NSWindowBelow relativeTo:nil];
++}
++
++- (void)setVibrancyMaterial:(NSVisualEffectMaterial)material {
++  NSVisualEffectView* effect =
++      base::apple::ObjCCast<NSVisualEffectView>(_materialView);
++  effect.material = material;
++}
++
++- (void)setGlassVariant:(heliox::GlassVariant)variant tint:(NSColor*)tint {
++  if ([_materialView respondsToSelector:NSSelectorFromString(@"setStyle:")]) {
++    [_materialView setValue:@(static_cast<NSInteger>(variant))
++                     forKey:@"style"];
++  }
++  if ([_materialView
++          respondsToSelector:NSSelectorFromString(@"setTintColor:")]) {
++    [_materialView setValue:tint forKey:@"tintColor"];
++  }
++}
++
++- (void)setOverlay:(NSView*)view color:(NSColor*)color {
++  const BOOL visible = color && color.alphaComponent > 0.0;
++  view.hidden = !visible;
++  view.layer.backgroundColor = visible ? color.CGColor : nullptr;
++}
++
++- (void)setBlurRadius:(CGFloat)radius {
++  _blurRadius = radius;
++  HelioxSetWindowBlur(self.window, radius);
++}
++
++- (void)applyConfig:(const heliox::SurfaceConfig&)config
++               dark:(BOOL)dark
++         themeColor:(SkColor)themeColor {
++  [CATransaction begin];
++  [CATransaction setDisableActions:YES];
++
++  self.appearance = [NSAppearance
++      appearanceNamed:dark ? NSAppearanceNameDarkAqua : NSAppearanceNameAqua];
++
++  HelioxMaterial material = HelioxMaterial::kNone;
++  CGFloat blur = 0.0;
++  CGFloat sheen = 0.0;
++  CGFloat grain = 0.0;
++  NSColor* frost = nil;
++  NSColor* tint = nil;
++  NSColor* glassTint = nil;
++
++  switch (config.style) {
++    case heliox::SurfaceStyle::kSolid:
++      tint = HelioxColor(themeColor, 1.0);
++      break;
++    case heliox::SurfaceStyle::kTransparent:
++      tint = HelioxColor(
++          themeColor,
++          std::max<CGFloat>(HelioxFraction(config.transparent_opacity), 0.05));
++      break;
++    case heliox::SurfaceStyle::kLiquidGlass:
++      sheen = HelioxFraction(config.glass_highlight);
++      if (HelioxGlassClass()) {
++        material = HelioxMaterial::kGlass;
++        if (config.glass_tint > 0) {
++          glassTint = HelioxColor(themeColor, HelioxFraction(config.glass_tint));
++        }
++      } else {
++        material = HelioxMaterial::kVibrancy;
++        tint = HelioxColor(themeColor, HelioxFraction(config.glass_tint));
++      }
++      break;
++    case heliox::SurfaceStyle::kBlur:
++      tint = HelioxColor(
++          themeColor,
++          std::max<CGFloat>(HelioxFraction(config.blur_tint), 0.05));
++      if (HelioxWindowBlurAvailable()) {
++        blur = HelioxFraction(config.blur_radius) * kHelioxMaxBlurRadius;
++      } else {
++        material = HelioxMaterial::kVibrancy;
++      }
++      break;
++    case heliox::SurfaceStyle::kFrostedGlass: {
++      material = HelioxMaterial::kVibrancy;
++      const CGFloat white = dark ? 0.16 : 1.0;
++      frost = [NSColor colorWithSRGBRed:white
++                                  green:white
++                                   blue:white
++                                  alpha:HelioxFraction(config.frost) * 0.7];
++      tint = HelioxColor(themeColor, HelioxFraction(config.frost_tint));
++      grain = HelioxFraction(config.frost_grain) * 0.16;
++      break;
++    }
++  }
++
++  [self setMaterial:material];
++  if (material == HelioxMaterial::kGlass) {
++    [self setGlassVariant:config.glass_variant tint:glassTint];
++  } else if (material == HelioxMaterial::kVibrancy) {
++    NSVisualEffectMaterial effect =
++        dark ? NSVisualEffectMaterialSidebar : NSVisualEffectMaterialMenu;
++    if (config.style == heliox::SurfaceStyle::kLiquidGlass) {
++      effect = dark ? NSVisualEffectMaterialHUDWindow
++                    : NSVisualEffectMaterialPopover;
++    } else if (config.style == heliox::SurfaceStyle::kBlur) {
++      effect = NSVisualEffectMaterialFullScreenUI;
++    }
++    [self setVibrancyMaterial:effect];
++  }
++
++  [self setBlurRadius:blur];
++  [self setOverlay:_frostView color:frost];
++  [self setOverlay:_tintView color:tint];
++
++  _grainView.hidden = grain <= 0.0;
++  _grainView.layer.opacity = static_cast<float>(grain);
++
++  _sheenView.hidden = sheen <= 0.0;
++  [_sheenView setStrength:sheen dark:dark];
++  [self setOverlay:_rimView
++             color:sheen > 0.0
++                       ? [NSColor colorWithSRGBRed:1.0
++                                             green:1.0
++                                              blue:1.0
++                                             alpha:sheen * (dark ? 0.35 : 0.7)]
++                       : nil];
++
++  [CATransaction commit];
++}
++
++@end
++
++namespace heliox {
++
++NSView* CreateSurfaceView(NSRect frame) {
++  return [[HelioxSurfaceView alloc] initWithFrame:frame];
++}
++
++void UpdateSurfaceView(NSView* surface_view,
++                       const SurfaceConfig& config,
++                       bool is_dark,
++                       SkColor theme_color) {
++  HelioxSurfaceView* view =
++      base::apple::ObjCCast<HelioxSurfaceView>(surface_view);
++  [view applyConfig:config dark:is_dark themeColor:theme_color];
++}
++
++}
+--- a/chrome/browser/ui/views/helium/native_frame_materials.cc
++++ b/chrome/browser/ui/views/helium/native_frame_materials.cc
+@@ -8,6 +8,7 @@
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/ui_features.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/helium/heliox_surface.h"
+ #include "chrome/common/pref_names.h"
+ #include "components/prefs/pref_service.h"
+ #include "ui/views/view.h"
+@@ -27,8 +28,8 @@ bool ShouldUseNativeFrameMaterials(const BrowserView* browser_view) {
+   }
+ 
+   const Profile* profile = browser_view->GetProfile();
+-  return profile &&
+-         profile->GetPrefs()->GetBoolean(prefs::kHeliumNativeFrameMaterials);
++  return profile && heliox::GetSurfaceStyle(profile->GetPrefs()) !=
++                        heliox::SurfaceStyle::kSolid;
+ }
+ 
+ bool ShouldUseNativeFrameMaterials(const BrowserWindowInterface* browser) {

@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Runner image
+        required: false
+        default: macos-26
+      publish:
+        description: Publish a GitHub release
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  config:
+    name: Read versions
+    runs-on: ubuntu-latest
+    outputs:
+      helium: ${{ steps.read.outputs.helium }}
+      tag: ${{ steps.read.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        run: |
+          helium="$(tr -d '[:space:]' < helium-version.txt)"
+          revision="$(tr -d '[:space:]' < revision.txt)"
+          echo "helium=$helium" >> "$GITHUB_OUTPUT"
+          echo "tag=$helium-$revision" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build
+    needs: config
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [arm64, x86_64]
+    uses: ./.github/workflows/build-arch.yml
+    with:
+      arch: ${{ matrix.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ needs.config.outputs.helium }}
+
+  release:
+    name: Publish
+    needs: [config, build]
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: heliox-*
+          path: dist
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.config.outputs.tag }}
+          HELIUM: ${{ needs.config.outputs.helium }}
+        run: |
+          gh release create "$TAG" dist/heliox-*.dmg dist/heliox-*.dmg.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "Heliox $TAG" \
+            --notes "Heliox for macOS, based on Helium $HELIUM."

@@ -1,0 +1,608 @@
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -286,6 +286,72 @@
+     <message name="IDS_SETTINGS_NATIVE_FRAME_MATERIALS_DESCRIPTION" desc="Description for the toggle which enables native system materials on the browser frame.">
+       Applies native materials to the browser frame surfaces. May cause UI clarity issues.
+     </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE" desc="Title of the settings section which controls the material of the browser surface.">
++      Surface
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_STYLE" desc="Accessibility label for the picker that controls the material of the browser surface.">
++      Surface material
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_SOLID" desc="Solid option in the surface material picker.">
++      Solid
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT" desc="Transparent option in the surface material picker.">
++      Transparent
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS" desc="Liquid Glass option in the surface material picker.">
++      Liquid Glass
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_BLUR" desc="Blur option in the surface material picker.">
++      Blur
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS" desc="Frosted Glass option in the surface material picker.">
++      Frosted Glass
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_SOLID_DESCRIPTION" desc="Description of the Solid surface material.">
++      The browser surface is filled with the theme color.
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT_DESCRIPTION" desc="Description of the Transparent surface material.">
++      The desktop shows through the browser surface without any blur.
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS_DESCRIPTION" desc="Description of the Liquid Glass surface material.">
++      The system Liquid Glass material that bends and reflects what is behind the window. Earlier versions of macOS use a similar glass effect.
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_BLUR_DESCRIPTION" desc="Description of the Blur surface material.">
++      The desktop shows through the browser surface with an adjustable blur.
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS_DESCRIPTION" desc="Description of the Frosted Glass surface material.">
++      A milky, softly grained glass that diffuses what is behind the window.
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_OPACITY" desc="Label for the slider that controls the opacity of the browser surface.">
++      Opacity
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_TINT" desc="Label for the slider that controls how strongly the theme color tints the browser surface.">
++      Theme color tint
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_HIGHLIGHT" desc="Label for the slider that controls the strength of the light reflection on the glass surface.">
++      Highlight
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_VARIANT" desc="Label for the menu that selects the Liquid Glass variant.">
++      Glass variant
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_VARIANT_REGULAR" desc="Regular option in the Liquid Glass variant menu.">
++      Regular
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_VARIANT_CLEAR" desc="Clear option in the Liquid Glass variant menu.">
++      Clear
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_BLUR_RADIUS" desc="Label for the slider that controls the blur strength of the browser surface.">
++      Blur strength
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_FROST" desc="Label for the slider that controls how milky the frosted glass surface is.">
++      Frost
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_GRAIN" desc="Label for the slider that controls the amount of grain on the frosted glass surface.">
++      Grain
++    </message>
++    <message name="IDS_SETTINGS_HELIOX_SURFACE_RESET" desc="Label for the button that resets the options of the selected surface material.">
++      Options of this material
++    </message>
+     <message name="IDS_SETTINGS_LAYOUT" desc="Title of the settings section which controls how the browser UI is laid out.">
+       Layout
+     </message>
+--- a/chrome/browser/resources/settings/BUILD.gn
++++ b/chrome/browser/resources/settings/BUILD.gn
+@@ -208,6 +208,8 @@ build_webui("build") {
+     "appearance_page/appearance_page.ts",
+     "appearance_page/appearance_page_index.html.ts",
+     "appearance_page/appearance_page_index.ts",
++    "appearance_page/appearance_surface_page.html.ts",
++    "appearance_page/appearance_surface_page.ts",
+     "appearance_page/home_url_input.html.ts",
+     "appearance_page/home_url_input.ts",
+     "autofill_page/account_card.html.ts",
+@@ -597,6 +599,7 @@ build_webui("build") {
+     "appearance_page/appearance_layout_page.css",
+     "appearance_page/appearance_page.css",
+     "appearance_page/appearance_page_index.css",
++    "appearance_page/appearance_surface_page.css",
+     "appearance_page/home_url_input.css",
+     "autofill_page/account_card.css",
+     "autofill_page/autofill_ai_add_or_edit_dialog.css",
+--- a/chrome/browser/resources/settings/appearance_page/appearance_page_index.html.ts
++++ b/chrome/browser/resources/settings/appearance_page/appearance_page_index.html.ts
+@@ -14,6 +14,9 @@ export function getHtml(this: SettingsAppearancePageIndexElement) {
+   <settings-appearance-layout-page slot="view" id="layout">
+   </settings-appearance-layout-page>
+ 
++  <settings-appearance-surface-page slot="view" id="surface">
++  </settings-appearance-surface-page>
++
+   <settings-appearance-page slot="view" id="appearance">
+   </settings-appearance-page>
+ 
+--- a/chrome/browser/resources/settings/appearance_page/appearance_page_index.ts
++++ b/chrome/browser/resources/settings/appearance_page/appearance_page_index.ts
+@@ -6,6 +6,7 @@ import 'chrome://resources/cr_elements/cr_view_manager/cr_view_manager.js';
+ import './appearance_behavior_page.js';
+ import './appearance_layout_page.js';
+ import './appearance_page.js';
++import './appearance_surface_page.js';
+ 
+ import type {CrViewManagerElement} from 'chrome://resources/cr_elements/cr_view_manager/cr_view_manager.js';
+ import {CrLitElement} from 'chrome://resources/lit/v3_0/lit.rollup.js';
+--- /dev/null
++++ b/chrome/browser/resources/settings/appearance_page/appearance_surface_page.css
+@@ -0,0 +1,132 @@
++/* #css_wrapper_metadata_start
++ * #type=style-lit
++ * #import=chrome://resources/cr_elements/cr_shared_style_lit.css.js
++ * #import=../settings_shared_lit.css.js
++ * #include=cr-shared-style-lit settings-shared-lit
++ * #css_wrapper_metadata_end */
++
++#surfaceStyle {
++  display: block;
++  padding: 8px calc(var(--cr-section-padding) - 12px);
++}
++
++.surface-option {
++  border-radius: var(--cr-card-border-radius);
++  flex: 1;
++  flex-direction: column;
++  gap: 8px;
++  min-width: 0;
++  padding: 12px 8px;
++}
++
++.surface-option:hover {
++  background-color: var(--cr-hover-background-color);
++}
++
++.surface-option::part(labelWrapper) {
++  align-self: stretch;
++  text-align: center;
++}
++
++.surface-option::part(disc) {
++  order: 1;
++}
++
++.surface-preview {
++  --preview-chrome-height: 34%;
++  aspect-ratio: 16 / 10;
++  background:
++      radial-gradient(circle at 18% 22%, #ff8a5c 0, transparent 46%),
++      radial-gradient(circle at 82% 16%, #5b8cff 0, transparent 52%),
++      radial-gradient(circle at 60% 88%, #b06bff 0, transparent 55%),
++      linear-gradient(135deg, #ffd27a, #3f51d8);
++  border: var(--cr-separator-line);
++  border-radius: 7px;
++  box-sizing: border-box;
++  display: flex;
++  flex-direction: column;
++  margin-bottom: 8px;
++  outline: 2px solid transparent;
++  overflow: hidden;
++  position: relative;
++}
++
++.surface-option[checked] .surface-preview {
++  outline-color: var(--cr-checked-color);
++}
++
++.preview-chrome {
++  align-items: center;
++  box-sizing: border-box;
++  display: flex;
++  flex: 0 0 var(--preview-chrome-height);
++  gap: 3px;
++  padding: 0 4px;
++}
++
++.preview-tab,
++.preview-field {
++  background-color: var(--cr-fallback-color-surface);
++  border-radius: 3px;
++  height: 46%;
++  opacity: .92;
++}
++
++.preview-tab {
++  flex: 0 0 26%;
++}
++
++.preview-field {
++  flex: 1;
++}
++
++.preview-content {
++  background-color: var(--cr-fallback-color-surface);
++  border-radius: 3px 3px 0 0;
++  flex: 1;
++  margin: 0 2px;
++}
++
++.solid .preview-chrome {
++  background-color: var(--cr-fallback-color-neutral-container);
++}
++
++.solid {
++  background: var(--cr-fallback-color-neutral-container);
++}
++
++.transparent .preview-chrome {
++  background-color: color-mix(
++      in srgb, var(--cr-fallback-color-neutral-container) 45%, transparent);
++}
++
++.liquid-glass .preview-chrome {
++  backdrop-filter: blur(5px) saturate(1.9) brightness(1.08);
++  background: linear-gradient(
++      180deg, rgba(255, 255, 255, .46), rgba(255, 255, 255, .12));
++  box-shadow:
++      inset 0 1px 0 rgba(255, 255, 255, .8),
++      inset 0 -1px 0 rgba(255, 255, 255, .22);
++}
++
++.blur .preview-chrome {
++  backdrop-filter: blur(4px);
++  background-color: color-mix(
++      in srgb, var(--cr-fallback-color-neutral-container) 30%, transparent);
++}
++
++.frosted-glass .preview-chrome {
++  backdrop-filter: blur(9px) saturate(1.2);
++  background-color: color-mix(
++      in srgb, var(--cr-fallback-color-surface) 62%, transparent);
++}
++
++.surface-description {
++  border-top: none;
++  min-height: 0;
++  padding-bottom: 8px;
++}
++
++settings-slider {
++  width: 240px;
++}
+--- /dev/null
++++ b/chrome/browser/resources/settings/appearance_page/appearance_surface_page.html.ts
+@@ -0,0 +1,125 @@
++import {html} from '//resources/lit/v3_0/lit.rollup.js';
++
++import type {SettingsAppearanceSurfacePageElement} from './appearance_surface_page.js';
++
++export function getHtml(this: SettingsAppearanceSurfacePageElement) {
++  return html`<!--_html_template_start_-->
++<settings-section page-title="$i18n{helioxSurfacePageTitle}">
++  <settings-radio-group id="surfaceStyle" is-horizontal
++      pref-key="heliox.surface.style"
++      group-aria-label="$i18n{helioxSurfaceStyle}">
++    ${this.surfaceStyleOptions_.map(item => html`
++      <controlled-radio-button class="surface-option"
++          name="${item.value}" pref-key="heliox.surface.style"
++          label="${item.name}" hide-label-text no-extension-indicator>
++        <div class="surface-preview ${item.preview}" aria-hidden="true">
++          <div class="preview-chrome">
++            <div class="preview-tab"></div>
++            <div class="preview-field"></div>
++          </div>
++          <div class="preview-content"></div>
++        </div>
++        <div aria-hidden="true">${item.name}</div>
++      </controlled-radio-button>
++    `)}
++  </settings-radio-group>
++  <div class="cr-row surface-description">
++    <div class="flex cr-padded-text cr-secondary-text">
++      ${this.getDescription_()}
++    </div>
++  </div>
++  ${this.isTransparent_() ? html`
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceOpacity}
++      </div>
++      <settings-slider pref-key="heliox.surface.transparent.opacity"
++          min="5" max="100" label-aria="$i18n{helioxSurfaceOpacity}">
++      </settings-slider>
++    </div>
++  ` : ''}
++  ${this.isLiquidGlass_() ? html`
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceVariant}
++      </div>
++      <settings-dropdown-menu label="$i18n{helioxSurfaceVariant}"
++          pref-key="heliox.surface.liquid_glass.variant"
++          .menuOptions="${this.glassVariantOptions_}">
++      </settings-dropdown-menu>
++    </div>
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceTint}
++      </div>
++      <settings-slider pref-key="heliox.surface.liquid_glass.tint"
++          min="0" max="100" label-aria="$i18n{helioxSurfaceTint}">
++      </settings-slider>
++    </div>
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceHighlight}
++      </div>
++      <settings-slider pref-key="heliox.surface.liquid_glass.highlight"
++          min="0" max="100" label-aria="$i18n{helioxSurfaceHighlight}">
++      </settings-slider>
++    </div>
++  ` : ''}
++  ${this.isBlur_() ? html`
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceBlurRadius}
++      </div>
++      <settings-slider pref-key="heliox.surface.blur.radius"
++          min="0" max="100" label-aria="$i18n{helioxSurfaceBlurRadius}">
++      </settings-slider>
++    </div>
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceTint}
++      </div>
++      <settings-slider pref-key="heliox.surface.blur.tint"
++          min="5" max="100" label-aria="$i18n{helioxSurfaceTint}">
++      </settings-slider>
++    </div>
++  ` : ''}
++  ${this.isFrostedGlass_() ? html`
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceFrost}
++      </div>
++      <settings-slider pref-key="heliox.surface.frosted_glass.frost"
++          min="0" max="100" label-aria="$i18n{helioxSurfaceFrost}">
++      </settings-slider>
++    </div>
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceTint}
++      </div>
++      <settings-slider pref-key="heliox.surface.frosted_glass.tint"
++          min="0" max="100" label-aria="$i18n{helioxSurfaceTint}">
++      </settings-slider>
++    </div>
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceGrain}
++      </div>
++      <settings-slider pref-key="heliox.surface.frosted_glass.grain"
++          min="0" max="100" label-aria="$i18n{helioxSurfaceGrain}">
++      </settings-slider>
++    </div>
++  ` : ''}
++  ${this.isSolid_() ? '' : html`
++    <div class="cr-row">
++      <div class="flex cr-padded-text" aria-hidden="true">
++        $i18n{helioxSurfaceReset}
++      </div>
++      <cr-button id="resetSurface" @click="${this.onResetClick_}"
++          aria-label="$i18n{helioxSurfaceReset}">
++        $i18n{resetToDefault}
++      </cr-button>
++    </div>
++  `}
++</settings-section>
++<!--_html_template_end_-->`;
++}
+--- /dev/null
++++ b/chrome/browser/resources/settings/appearance_page/appearance_surface_page.ts
+@@ -0,0 +1,179 @@
++import 'chrome://resources/cr_elements/cr_button/cr_button.js';
++import '../controls/controlled_radio_button.js';
++import '../controls/settings_dropdown_menu.js';
++import '../controls/settings_radio_group.js';
++import '../controls/settings_slider.js';
++import '../settings_page/settings_section.js';
++
++import {PrefService} from '/shared/settings/prefs2/pref_service.js';
++import {PrefServiceObserverMixinLit} from '/shared/settings/prefs2/pref_service_observer_mixin_lit.js';
++import {CrLitElement} from 'chrome://resources/lit/v3_0/lit.rollup.js';
++
++import type {DropdownMenuOptionList} from '../controls/settings_dropdown_menu.js';
++import {loadTimeData} from '../i18n_setup.js';
++
++import {getCss} from './appearance_surface_page.css.js';
++import {getHtml} from './appearance_surface_page.html.js';
++
++type PrefObject<T> = chrome.settingsPrivate.PrefObject<T>;
++
++enum SurfaceStyle {
++  SOLID = 0,
++  TRANSPARENT = 1,
++  LIQUID_GLASS = 2,
++  BLUR = 3,
++  FROSTED_GLASS = 4,
++}
++
++interface SurfaceStyleOption {
++  value: SurfaceStyle;
++  name: string;
++  description: string;
++  preview: string;
++}
++
++const SURFACE_DEFAULTS: Record<SurfaceStyle, Record<string, number>> = {
++  [SurfaceStyle.SOLID]: {},
++  [SurfaceStyle.TRANSPARENT]: {
++    'heliox.surface.transparent.opacity': 60,
++  },
++  [SurfaceStyle.LIQUID_GLASS]: {
++    'heliox.surface.liquid_glass.variant': 0,
++    'heliox.surface.liquid_glass.tint': 35,
++    'heliox.surface.liquid_glass.highlight': 30,
++  },
++  [SurfaceStyle.BLUR]: {
++    'heliox.surface.blur.radius': 50,
++    'heliox.surface.blur.tint': 40,
++  },
++  [SurfaceStyle.FROSTED_GLASS]: {
++    'heliox.surface.frosted_glass.frost': 45,
++    'heliox.surface.frosted_glass.tint': 30,
++    'heliox.surface.frosted_glass.grain': 30,
++  },
++};
++
++const SettingsAppearanceSurfacePageElementBase =
++    PrefServiceObserverMixinLit(CrLitElement);
++
++export class SettingsAppearanceSurfacePageElement extends
++    SettingsAppearanceSurfacePageElementBase {
++  static get is() {
++    return 'settings-appearance-surface-page';
++  }
++
++  static override get styles() {
++    return getCss();
++  }
++
++  override render() {
++    return getHtml.bind(this)();
++  }
++
++  static override get properties() {
++    return {
++      surfaceStylePref_: {type: Object},
++      surfaceStyleOptions_: {type: Array},
++      glassVariantOptions_: {type: Array},
++    };
++  }
++
++  protected accessor surfaceStylePref_: PrefObject<number>|undefined =
++      undefined;
++
++  protected accessor surfaceStyleOptions_: SurfaceStyleOption[] = [
++    {
++      value: SurfaceStyle.SOLID,
++      name: loadTimeData.getString('helioxSurfaceSolid'),
++      description: loadTimeData.getString('helioxSurfaceSolidDescription'),
++      preview: 'solid',
++    },
++    {
++      value: SurfaceStyle.TRANSPARENT,
++      name: loadTimeData.getString('helioxSurfaceTransparent'),
++      description:
++          loadTimeData.getString('helioxSurfaceTransparentDescription'),
++      preview: 'transparent',
++    },
++    {
++      value: SurfaceStyle.LIQUID_GLASS,
++      name: loadTimeData.getString('helioxSurfaceLiquidGlass'),
++      description:
++          loadTimeData.getString('helioxSurfaceLiquidGlassDescription'),
++      preview: 'liquid-glass',
++    },
++    {
++      value: SurfaceStyle.BLUR,
++      name: loadTimeData.getString('helioxSurfaceBlur'),
++      description: loadTimeData.getString('helioxSurfaceBlurDescription'),
++      preview: 'blur',
++    },
++    {
++      value: SurfaceStyle.FROSTED_GLASS,
++      name: loadTimeData.getString('helioxSurfaceFrostedGlass'),
++      description:
++          loadTimeData.getString('helioxSurfaceFrostedGlassDescription'),
++      preview: 'frosted-glass',
++    },
++  ];
++
++  protected accessor glassVariantOptions_: DropdownMenuOptionList = [
++    {value: 0, name: loadTimeData.getString('helioxSurfaceVariantRegular')},
++    {value: 1, name: loadTimeData.getString('helioxSurfaceVariantClear')},
++  ];
++
++  override connectedCallback() {
++    super.connectedCallback();
++
++    this.mirrorPrefs({
++      'heliox.surface.style': 'surfaceStylePref_',
++    });
++  }
++
++  protected isSolid_(): boolean {
++    return this.surfaceStylePref_?.value === SurfaceStyle.SOLID;
++  }
++
++  protected isTransparent_(): boolean {
++    return this.surfaceStylePref_?.value === SurfaceStyle.TRANSPARENT;
++  }
++
++  protected isLiquidGlass_(): boolean {
++    return this.surfaceStylePref_?.value === SurfaceStyle.LIQUID_GLASS;
++  }
++
++  protected isBlur_(): boolean {
++    return this.surfaceStylePref_?.value === SurfaceStyle.BLUR;
++  }
++
++  protected isFrostedGlass_(): boolean {
++    return this.surfaceStylePref_?.value === SurfaceStyle.FROSTED_GLASS;
++  }
++
++  protected getDescription_(): string {
++    const option = this.surfaceStyleOptions_.find(
++        item => item.value === this.surfaceStylePref_?.value);
++    return option ? option.description : '';
++  }
++
++  protected onResetClick_() {
++    const style = this.surfaceStylePref_?.value as SurfaceStyle | undefined;
++    if (style === undefined || !(style in SURFACE_DEFAULTS)) {
++      return;
++    }
++
++    for (const [key, value] of Object.entries(SURFACE_DEFAULTS[style])) {
++      PrefService.getInstance().setPrefValue(key, value);
++    }
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    'settings-appearance-surface-page': SettingsAppearanceSurfacePageElement;
++  }
++}
++
++customElements.define(
++    SettingsAppearanceSurfacePageElement.is,
++    SettingsAppearanceSurfacePageElement);
+--- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
++++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
+@@ -610,6 +610,34 @@ void AddAppearanceStrings(content::WebUIDataSource* html_source,
+       {"nativeFrameMaterials", IDS_SETTINGS_NATIVE_FRAME_MATERIALS},
+       {"nativeFrameMaterialsDescription",
+        IDS_SETTINGS_NATIVE_FRAME_MATERIALS_DESCRIPTION},
++      {"helioxSurfacePageTitle", IDS_SETTINGS_HELIOX_SURFACE},
++      {"helioxSurfaceStyle", IDS_SETTINGS_HELIOX_SURFACE_STYLE},
++      {"helioxSurfaceSolid", IDS_SETTINGS_HELIOX_SURFACE_SOLID},
++      {"helioxSurfaceTransparent", IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT},
++      {"helioxSurfaceLiquidGlass", IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS},
++      {"helioxSurfaceBlur", IDS_SETTINGS_HELIOX_SURFACE_BLUR},
++      {"helioxSurfaceFrostedGlass", IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS},
++      {"helioxSurfaceSolidDescription",
++       IDS_SETTINGS_HELIOX_SURFACE_SOLID_DESCRIPTION},
++      {"helioxSurfaceTransparentDescription",
++       IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT_DESCRIPTION},
++      {"helioxSurfaceLiquidGlassDescription",
++       IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS_DESCRIPTION},
++      {"helioxSurfaceBlurDescription",
++       IDS_SETTINGS_HELIOX_SURFACE_BLUR_DESCRIPTION},
++      {"helioxSurfaceFrostedGlassDescription",
++       IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS_DESCRIPTION},
++      {"helioxSurfaceOpacity", IDS_SETTINGS_HELIOX_SURFACE_OPACITY},
++      {"helioxSurfaceTint", IDS_SETTINGS_HELIOX_SURFACE_TINT},
++      {"helioxSurfaceHighlight", IDS_SETTINGS_HELIOX_SURFACE_HIGHLIGHT},
++      {"helioxSurfaceVariant", IDS_SETTINGS_HELIOX_SURFACE_VARIANT},
++      {"helioxSurfaceVariantRegular",
++       IDS_SETTINGS_HELIOX_SURFACE_VARIANT_REGULAR},
++      {"helioxSurfaceVariantClear", IDS_SETTINGS_HELIOX_SURFACE_VARIANT_CLEAR},
++      {"helioxSurfaceBlurRadius", IDS_SETTINGS_HELIOX_SURFACE_BLUR_RADIUS},
++      {"helioxSurfaceFrost", IDS_SETTINGS_HELIOX_SURFACE_FROST},
++      {"helioxSurfaceGrain", IDS_SETTINGS_HELIOX_SURFACE_GRAIN},
++      {"helioxSurfaceReset", IDS_SETTINGS_HELIOX_SURFACE_RESET},
+       {"layoutPageTitle", IDS_SETTINGS_LAYOUT},
+       {"browserLayout", IDS_SETTINGS_BROWSER_LAYOUT},
+       {"browserLayoutClassic", IDS_SETTINGS_BROWSER_LAYOUT_CLASSIC},
+@@ -717,8 +745,7 @@ void AddAppearanceStrings(content::WebUIDataSource* html_source,
+       "showEverythingMenuEnabled",
+       tab_groups::SavedTabGroupUtils::IsEnabledForProfile(profile));
+ 
+-  html_source->AddBoolean("showNativeFrameMaterialsOption",
+-                          features::HeliumNativeFrameAvailable());
++  html_source->AddBoolean("showNativeFrameMaterialsOption", false);
+   html_source->AddBoolean("showCtrlTabMru",
+                           base::FeatureList::IsEnabled(features::kCtrlTabMru));
+   html_source->AddBoolean(

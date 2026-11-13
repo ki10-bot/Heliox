@@ -1,0 +1,104 @@
+name: Build phase
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      helium:
+        required: true
+        type: string
+      resume:
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      status:
+        value: ${{ jobs.build.outputs.status }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: imputnet/helium-macos
+          ref: ${{ inputs.helium }}
+          submodules: true
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: heliox
+          persist-credentials: false
+      - name: Add Heliox
+        run: python3 heliox/scripts/overlay.py .
+      - uses: ./.github/actions/prepare-environment
+      - name: Download sources
+        if: ${{ !inputs.resume }}
+        uses: actions/download-artifact@v4
+        with:
+          name: heliox_resources_${{ inputs.arch }}
+      - name: Unpack sources
+        if: ${{ !inputs.resume }}
+        run: ./github_unpack_resources.sh
+      - name: Configure
+        if: ${{ !inputs.resume }}
+        run: |
+          set -o pipefail
+          source ./devutils/shared.sh
+          configure_build '${{ inputs.arch }}' ci | tee -a github_actions_build_${{ inputs.arch }}.log
+      - name: Download previous phase
+        if: ${{ inputs.resume }}
+        uses: actions/download-artifact@v4
+        with:
+          name: heliox_build_${{ inputs.arch }}
+      - name: Unpack previous phase
+        if: ${{ inputs.resume }}
+        run: ./github_unpack_archive.sh
+      - name: Build
+        id: build
+        env:
+          SCCACHE_DIR: ${{ runner.temp }}/sccache
+          SCCACHE_CACHE_SIZE: 5G
+        run: |
+          set -o pipefail
+          ./github_build.sh '${{ inputs.arch }}' 2>&1 | tee -a github_actions_build_${{ inputs.arch }}.log
+      - name: Package
+        id: package
+        run: ./heliox/scripts/package.sh '${{ inputs.arch }}'
+      - name: Upload unfinished build
+        if: ${{ steps.package.outputs.packaged == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: heliox_build_${{ inputs.arch }}
+          path: upload_part_build/
+          overwrite: true
+          retention-days: 3
+      - name: Upload logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: heliox_logs_${{ inputs.arch }}
+          path: upload_logs/
+          overwrite: true
+          if-no-files-found: ignore
+      - name: Upload disk image
+        if: ${{ steps.package.outputs.packaged == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: heliox-${{ inputs.arch }}
+          path: release_asset/
