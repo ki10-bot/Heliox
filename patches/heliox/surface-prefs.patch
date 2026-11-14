@@ -1,0 +1,74 @@
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -238,6 +238,24 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
+       settings_api::PrefType::kBoolean;
+   (*s_allowlist)[::prefs::kHeliumNativeFrameMaterials] =
+       settings_api::PrefType::kBoolean;
++  (*s_allowlist)[::prefs::kHelioxSurfaceStyle] =
++      settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxTransparentOpacity] =
++      settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxLiquidGlassVariant] =
++      settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxLiquidGlassTint] =
++      settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxLiquidGlassHighlight] =
++      settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxBlurRadius] = settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxBlurTint] = settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxFrostedGlassFrost] =
++      settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxFrostedGlassTint] =
++      settings_api::PrefType::kNumber;
++  (*s_allowlist)[::prefs::kHelioxFrostedGlassGrain] =
++      settings_api::PrefType::kNumber;
+ 
+   // Miscellaneous
+   (*s_allowlist)[::embedder_support::kAlternateErrorPagesEnabled] =
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -138,6 +138,17 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+ 
+   registry->RegisterBooleanPref(prefs::kHeliumNativeFrameMaterials, false);
+ 
++  registry->RegisterIntegerPref(prefs::kHelioxSurfaceStyle, 2);
++  registry->RegisterIntegerPref(prefs::kHelioxTransparentOpacity, 60);
++  registry->RegisterIntegerPref(prefs::kHelioxLiquidGlassVariant, 0);
++  registry->RegisterIntegerPref(prefs::kHelioxLiquidGlassTint, 35);
++  registry->RegisterIntegerPref(prefs::kHelioxLiquidGlassHighlight, 30);
++  registry->RegisterIntegerPref(prefs::kHelioxBlurRadius, 50);
++  registry->RegisterIntegerPref(prefs::kHelioxBlurTint, 40);
++  registry->RegisterIntegerPref(prefs::kHelioxFrostedGlassFrost, 45);
++  registry->RegisterIntegerPref(prefs::kHelioxFrostedGlassTint, 30);
++  registry->RegisterIntegerPref(prefs::kHelioxFrostedGlassGrain, 30);
++
+   registry->RegisterBooleanPref(prefs::kHeliumCenteredLocationBar, false);
+ 
+   registry->RegisterBooleanPref(prefs::kHeliumMinimalLocationBar, false);
+--- a/chrome/common/pref_names.h
++++ b/chrome/common/pref_names.h
+@@ -627,6 +627,24 @@ inline constexpr char kHeliumRoundedFrame[] = "helium.browser.rounded_frame";
+ inline constexpr char kHeliumNativeFrameMaterials[] =
+     "helium.browser.native_frame_materials";
+ 
++inline constexpr char kHelioxSurfaceStyle[] = "heliox.surface.style";
++inline constexpr char kHelioxTransparentOpacity[] =
++    "heliox.surface.transparent.opacity";
++inline constexpr char kHelioxLiquidGlassVariant[] =
++    "heliox.surface.liquid_glass.variant";
++inline constexpr char kHelioxLiquidGlassTint[] =
++    "heliox.surface.liquid_glass.tint";
++inline constexpr char kHelioxLiquidGlassHighlight[] =
++    "heliox.surface.liquid_glass.highlight";
++inline constexpr char kHelioxBlurRadius[] = "heliox.surface.blur.radius";
++inline constexpr char kHelioxBlurTint[] = "heliox.surface.blur.tint";
++inline constexpr char kHelioxFrostedGlassFrost[] =
++    "heliox.surface.frosted_glass.frost";
++inline constexpr char kHelioxFrostedGlassTint[] =
++    "heliox.surface.frosted_glass.tint";
++inline constexpr char kHelioxFrostedGlassGrain[] =
++    "heliox.surface.frosted_glass.grain";
++
+ // An enum (HeliumLayoutType) pref that controls the browser layout.
+ inline constexpr char kHeliumLayout[] = "helium.browser.layout";
+ 

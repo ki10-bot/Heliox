@@ -1,0 +1,134 @@
+[
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Title of the settings section which controls the material of the browser surface.",
+    "message": "Surface"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_STYLE",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Accessibility label for the picker that controls the material of the browser surface.",
+    "message": "Surface material"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_SOLID",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Solid option in the surface material picker.",
+    "message": "Solid"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Transparent option in the surface material picker.",
+    "message": "Transparent"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Liquid Glass option in the surface material picker.",
+    "message": "Liquid Glass"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_BLUR",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Blur option in the surface material picker.",
+    "message": "Blur"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Frosted Glass option in the surface material picker.",
+    "message": "Frosted Glass"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_SOLID_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the Solid surface material.",
+    "message": "The browser surface is filled with the theme color."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_TRANSPARENT_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the Transparent surface material.",
+    "message": "The desktop shows through the browser surface without any blur."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_LIQUID_GLASS_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the Liquid Glass surface material.",
+    "message": "The system Liquid Glass material that bends and reflects what is behind the window. Earlier versions of macOS use a similar glass effect."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_BLUR_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the Blur surface material.",
+    "message": "The desktop shows through the browser surface with an adjustable blur."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_FROSTED_GLASS_DESCRIPTION",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Description of the Frosted Glass surface material.",
+    "message": "A milky, softly grained glass that diffuses what is behind the window."
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_OPACITY",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the slider that controls the opacity of the browser surface.",
+    "message": "Opacity"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_TINT",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the slider that controls how strongly the theme color tints the browser surface.",
+    "message": "Theme color tint"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_HIGHLIGHT",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the slider that controls the strength of the light reflection on the glass surface.",
+    "message": "Highlight"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_VARIANT",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the menu that selects the Liquid Glass variant.",
+    "message": "Glass variant"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_VARIANT_REGULAR",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Regular option in the Liquid Glass variant menu.",
+    "message": "Regular"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_VARIANT_CLEAR",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Clear option in the Liquid Glass variant menu.",
+    "message": "Clear"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_BLUR_RADIUS",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the slider that controls the blur strength of the browser surface.",
+    "message": "Blur strength"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_FROST",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the slider that controls how milky the frosted glass surface is.",
+    "message": "Frost"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_GRAIN",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the slider that controls the amount of grain on the frosted glass surface.",
+    "message": "Grain"
+  },
+  {
+    "name": "IDS_SETTINGS_HELIOX_SURFACE_RESET",
+    "source": "chrome/app/settings_strings.grdp",
+    "context": "Label for the button that resets the options of the selected surface material.",
+    "message": "Options of this material"
+  }
+]
