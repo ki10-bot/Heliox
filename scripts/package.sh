@@ -9,7 +9,12 @@ if [ -f "$workspace/build_finished_$arch.log" ]; then
   mkdir -p "$workspace/release_asset"
   export OUT_DMG_PATH="$workspace/release_asset/heliox-$arch.dmg"
   (cd "$source_dir" && xattr -cs out/Default/Helium.app && "$workspace/sign_and_package_app.sh")
+  if [ ! -s "$OUT_DMG_PATH" ]; then
+    echo "::error::Packaging did not produce a non-empty disk image for $arch: $OUT_DMG_PATH" >&2
+    exit 1
+  fi
   (cd "$workspace/release_asset" && shasum -a 256 "heliox-$arch.dmg" > "heliox-$arch.dmg.sha256")
+  test -s "$workspace/release_asset/heliox-$arch.dmg.sha256"
   echo "packaged=true" >> "$GITHUB_OUTPUT"
 else
   gsync --file-system "$source_dir"

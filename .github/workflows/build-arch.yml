@@ -138,3 +138,28 @@ jobs:
       runner: ${{ inputs.runner }}
       helium: ${{ inputs.helium }}
       resume: true
+
+  # The pinned upstream workflow also allows ten phases. Eight were exhausted
+  # for both architectures in run 43876307473; completion by ten is not guaranteed.
+  phase_09:
+    name: Build phase 9
+    needs: phase_08
+    if: ${{ needs.phase_08.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+
+  phase_10:
+    name: Build phase 10
+    needs: phase_09
+    if: ${{ needs.phase_09.outputs.status == 'running' }}
+    uses: ./.github/workflows/build-phase.yml
+    with:
+      arch: ${{ inputs.arch }}
+      runner: ${{ inputs.runner }}
+      helium: ${{ inputs.helium }}
+      resume: true
+      last_phase: true
