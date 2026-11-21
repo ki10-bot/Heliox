@@ -59,13 +59,17 @@ jobs:
           pattern: heliox-*
           path: dist
           merge-multiple: true
+      - name: Validate release assets
+        run: python3 scripts/validate-release-assets.py dist
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.config.outputs.tag }}
           HELIUM: ${{ needs.config.outputs.helium }}
         run: |
-          gh release create "$TAG" dist/heliox-*.dmg dist/heliox-*.dmg.sha256 \
+          gh release create "$TAG" \
+            dist/heliox-arm64.dmg dist/heliox-arm64.dmg.sha256 \
+            dist/heliox-x86_64.dmg dist/heliox-x86_64.dmg.sha256 \
             --target "$GITHUB_SHA" \
             --title "Heliox $TAG" \
             --notes "Heliox for macOS, based on Helium $HELIUM."

@@ -19,4 +19,15 @@ jobs:
       - name: Apply Heliox on top of Helium
         run: python3 scripts/verify.py
       - name: Check shell scripts
-        run: bash -n install.sh uninstall.sh scripts/build.sh scripts/package.sh
+        run: bash -n install.sh uninstall.sh scripts/build.sh scripts/package.sh scripts/check-phase-status.sh
+
+  release-logic:
+    name: Release workflow logic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Test release workflow logic
+        run: python3 -m unittest discover -s tests -v

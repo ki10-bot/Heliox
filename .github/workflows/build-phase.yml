@@ -16,6 +16,10 @@ on:
         required: false
         type: boolean
         default: false
+      last_phase:
+        required: false
+        type: boolean
+        default: false
     outputs:
       status:
         value: ${{ jobs.build.outputs.status }}
@@ -86,6 +90,7 @@ jobs:
         with:
           name: heliox_build_${{ inputs.arch }}
           path: upload_part_build/
+          if-no-files-found: error
           overwrite: true
           retention-days: 3
       - name: Upload logs
@@ -101,4 +106,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: heliox-${{ inputs.arch }}
-          path: release_asset/
+          path: |
+            release_asset/heliox-${{ inputs.arch }}.dmg
+            release_asset/heliox-${{ inputs.arch }}.dmg.sha256
+          if-no-files-found: error
+      # Check only after uploading, so a final checkpoint is available for diagnosis.
+      - name: Validate phase outcome
+        env:
+          BUILD_STATUS: ${{ steps.build.outputs.status }}
+          PACKAGED: ${{ steps.package.outputs.packaged }}
+          LAST_PHASE: ${{ inputs.last_phase }}
+          ARCH: ${{ inputs.arch }}
+        run: ./heliox/scripts/check-phase-status.sh "$BUILD_STATUS" "$PACKAGED" "$LAST_PHASE" "$ARCH"
